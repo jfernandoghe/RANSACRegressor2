@@ -21,7 +21,12 @@ from sklearn.utils.random import sample_without_replacement
 
 class RANSACRegressor2(linear_model.RANSACRegressor):
   
-  def fitSegm(self, X, y, segmList, sample_weight=None):
+  def fitSegm(self, X_all, y_all, segmList, sample_weight=None):
+    
+    merged = list(itertools.chain.from_iterable(segmList))
+    X = x_all[merged]
+    y = y_all[merged]
+    
     X = check_array(X, accept_sparse='csr')
     y = check_array(y, ensure_2d=False)
     check_consistent_length(X, y)
@@ -154,8 +159,8 @@ class RANSACRegressor2(linear_model.RANSACRegressor):
     
         
         
-        X_subset = X[subset_idxs]
-        y_subset = y[subset_idxs]
+        X_subset = X_all[subset_idxs]
+        y_subset = y_all[subset_idxs]
 
         # check if random sample set is valid
         if (self.is_data_valid is not None
