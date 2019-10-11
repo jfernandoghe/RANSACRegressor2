@@ -12,6 +12,7 @@ from math import log
 import itertools
 import csv
 import statistics
+from scipy.stats import poisson
 ####
 from sklearn import linear_model
 from sklearn.linear_model import LinearRegression
@@ -149,6 +150,8 @@ class RANSACRegressor2(linear_model.RANSACRegressor):
         # choose random sample set
         ## antes:
         ## subset_idxs = sample_without_replacement(n_samples, min_samples, random_state=random_state)
+        
+        
         ## ahora:
         subset_idx_entries = sample_without_replacement(n_segments, min_samples,
                                                  random_state=random_state)
@@ -192,50 +195,82 @@ class RANSACRegressor2(linear_model.RANSACRegressor):
           self.n_skips_invalid_model_ += 1
           continue      
         
+        
+        
+        ########################## Inlier evaluation
       
-            
-          
-          
-          
         # residuals of all data for current random sample model
         y_pred = base_estimator.predict(X[merged])
-
-
         residuals_subset = loss_function(y[merged], y_pred)
+        
         # classify data into inliers and outliers
-        inlier_mask_subset = residuals_subset < residual_threshold   
-
+        inlier_mask_subset = residuals_subset < residual_threshold 
         n_inliers_subset = np.sum(inlier_mask_subset)
-        
-        #check that the all points in sample are inliers
-        if n_inliers_subset < min_samples:
-            continue
-        
-        # less inliers -> skip current random sample
-        if n_inliers_subset < n_inliers_best:
-            self.n_skips_no_inliers_ += 1
-            continue
-
-            
+        print(f"n_inliers_subset {n_inliers_subset} from {inlier_mask_subset.shape}")
+          
+          
+          
         # extract inlier data set        
         inlier_idxs_subset = list(compress(merged, inlier_mask_subset))
-        
+
         X_inlier_subset = X[inlier_idxs_subset]
         y_inlier_subset = y[inlier_idxs_subset]
-        
 
-        # score of inlier data set
-        score_subset = base_estimator.score(X_inlier_subset,
-                                            y_inlier_subset)
+        if(False): # plain evaluation (basic approach) 
+       
+
+          #check that the all points in sample are inliers
+          if n_inliers_subset < min_samples:
+              continue
+
+          # less inliers -> skip current random sample
+          if n_inliers_subset < n_inliers_best:
+              self.n_skips_no_inliers_ += 1
+              continue
 
 
-        # same number of inliers but worse score -> skip current random
-        # sample
-        if (n_inliers_subset == n_inliers_best
-                and score_subset <= score_best):
-            continue
 
+
+          # score of inlier data set
+          score_subset = base_estimator.score(X_inlier_subset,
+                                              y_inlier_subset)
+
+
+          # same number of inliers but worse score -> skip current random
+          # sample
+          if (n_inliers_subset == n_inliers_best
+                  and score_subset <= score_best):
+              continue
+              
+              
+        else:   #evaluation for each calibration point
+          
+          
+          indScore =  0  # score that considers inliers of each calibration point
+          cc = 0
+          for sSeg,seg in zip(size_sl,segmList):
             
+            c_seg = range(cc, sSeg+cc)
+            #print(seg)
+            #sys.exit(0)
+            cc+= sSeg
+
+            # classify data into inliers and outliers
+            nScore = np.sum(inlier_mask_subset[c_seg])
+            n_in_subset = nScore 
+            
+            print(f"{nScore} of {sSeg} / {n_inliers_subset}")
+            indScore += poisson.cdf(nScore, 0.75*sSeg)
+          
+          print (" =========== Score:", indScore)
+          
+          if(indScore <= score_best):
+            continue
+          score_subset = indScore
+          
+          
+
+          
     
         # save current random sample as best sample
         n_inliers_best = n_inliers_subset
