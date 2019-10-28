@@ -63,7 +63,7 @@ class SRANSAC(linear_model.RANSACRegressor):
 
     if self.residual_threshold is None:
         # MAD (median absolute deviation)
-        residual_threshold = np.median(np.abs(y - np.median(y)))
+        residual_threshold = np.percentile(np.abs(y - np.percentile(y,pervar)),pervar)
     else:
         residual_threshold = self.residual_threshold
 
@@ -206,7 +206,8 @@ class SRANSAC(linear_model.RANSACRegressor):
         # classify data into inliers and outliers
         inlier_mask_subset = residuals_subset < residual_threshold 
         n_inliers_subset = np.sum(inlier_mask_subset)
-        print(f"n_inliers_subset {n_inliers_subset} from {inlier_mask_subset.shape}")
+        if False:
+          print(f"n_inliers_subset {n_inliers_subset} from {inlier_mask_subset.shape}")
           
           
           
@@ -259,15 +260,17 @@ class SRANSAC(linear_model.RANSACRegressor):
             nScore = np.sum(inlier_mask_subset[c_seg])
             n_in_subset = nScore 
             
-            print(f"{nScore} of {sSeg} / {n_inliers_subset}")
-            indScore += poisson.cdf(nScore, 0.75*sSeg)
+            
+            indScore += poisson.cdf(nScore, 0.3*sSeg)
+            
           
-          print (" =========== Score:", indScore)
           
           if(indScore <= score_best):
             continue
           score_subset = indScore
           
+          
+         
           
 
           
@@ -322,3 +325,4 @@ class SRANSAC(linear_model.RANSACRegressor):
         self.inlier_mask_ = inlier_mask_best
         return self
 ##############
+
