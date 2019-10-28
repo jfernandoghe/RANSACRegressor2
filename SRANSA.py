@@ -23,7 +23,7 @@ from sklearn.utils.random import sample_without_replacement
 
 
 
-class RANSACRegressor2(linear_model.RANSACRegressor):
+class SRANSAC(linear_model.RANSACRegressor):
   
   def fitSegm(self, X, y, segmList, sample_weight=None):
     
